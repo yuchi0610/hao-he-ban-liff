@@ -1,0 +1,427 @@
+    <!DOCTYPE html>
+    <html lang="zh-Hant">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>好河伴 - 走讀詳情</title>
+        <!-- Tailwind CSS CDN -->
+        <script src="https://cdn.tailwindcss.com"></script>
+        <!-- LINE LIFF SDK -->
+        <script charset="utf-8" src="https://static.line-scdn.net/liff/sdk/2.21.0/liff.js"></script>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+        <style>
+            body {
+                font-family: 'Inter', sans-serif;
+                background-color: #f0f4f8; /* Light gray background */
+            }
+            .container {
+                max-width: 600px;
+                margin: auto;
+                padding: 1rem;
+            }
+            .card {
+                background-color: #ffffff;
+                border-radius: 12px;
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+                overflow: hidden;
+            }
+            .section-title {
+                color: #1A73E8; /* Blue color for titles */
+                font-weight: 700; /* Bold */
+            }
+            .qa-button {
+                background-color: #e0f2fe; /* Light blue */
+                color: #1A73E8;
+                border: 1px solid #90cdf4;
+                transition: background-color 0.2s;
+            }
+            .qa-button:hover {
+                background-color: #bfdbfe; /* Lighter blue on hover */
+            }
+            .qa-answer {
+                background-color: #f8fafc; /* Very light gray */
+                border-left: 4px solid #1A73E8;
+            }
+            /* 圖片的寬高適應和圓角 */
+            img {
+                max-width: 100%;
+                height: auto;
+                border-radius: 0.5rem; /* rounded-lg */
+            }
+            /* 讓圖片在卡片內有更好的間距 */
+            .card img {
+                margin-bottom: 1rem;
+            }
+        </style>
+    </head>
+    <body class="min-h-screen flex items-center justify-center p-4">
+        <div id="loading" class="text-center text-gray-600">載入中...</div>
+        
+        <div id="content" class="container hidden">
+            <div class="card p-6">
+                <h1 id="content-title" class="text-3xl font-bold mb-4 section-title"></h1>
+                <img id="content-image" class="w-full h-auto object-cover rounded-lg mb-4" alt="內容圖片">
+                <div id="content-body" class="text-gray-700 mb-6 leading-relaxed markdown-body">
+                    <!-- 內容會在此處載入 -->
+                </div>
+                
+                <a id="google-map-link" href="#" target="_blank" class="hidden block bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg text-center transition duration-200 mb-6">
+                    開啟 Google 地圖
+                </a>
+
+                <div id="qa-section" class="hidden">
+                    <h2 class="text-2xl font-bold mb-4 section-title">互動問答</h2>
+                    <div id="qa-container" class="space-y-4">
+                        <!-- QA 內容將由 JavaScript 動態載入 -->
+                    </div>
+                </div>
+
+                <button id="close-liff" class="mt-8 w-full bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 px-4 rounded-lg transition duration-200">
+                    關閉
+                </button>
+            </div>
+        </div>
+
+        <script>
+            // LIFF 相關數據，對應 app.py 中的 TOUR_POINTS 和額外內容
+            // 當 app.py 中的 TOUR_POINTS 改變時，這裡也需要同步更新！
+            const liffContentData = {
+                "zhudong_water_corridor": {
+                    "title": "竹東水岸光廊（綠化廣場）",
+                    "image": "https://i.ibb.co/cVcRP2L/unnamed.webp",
+                    "map_url": "https://maps.app.goo.gl/pcqdEsdPry5ryAcc7",
+                    "description": `大同社區綠化廣場位於中興河道與頭前溪交會處，是「竹東之心－中興河道水岸生活空間再造計畫」「水生態」河段的起始點：工程計畫包括:生態觀察教育公園、水資源教育通學步道、水岸多孔隙環境營造、水岸植栽綠美化、橋梁整建及美化、洗衫坑近水空間營造、人本綠色網絡營造以及配合營建署道路組之路網品質提升計畫、環保署汙水截流工程計畫。的核心據點與起始節點。
+                    
+此區過去為閒置空間與低效水岸環境，經改造後轉型為具備綠化、生態與活動功能的公共廣場，結合休憩空間與地方文化記憶，成為整體人本綠色網絡的重要起點。`,
+                    "qa": [
+                        { "q": "水岸光廊的主要改造內容？", "a": "改造內容包括生態觀察教育公園、水資源教育通學步道、水岸多孔隙環境營造、水岸植栽綠美化、橋梁整建及美化等，目標是打造人本親水的綠色網絡。" }
+                    ]
+                },
+                "zhudong_heart_project": {
+                    "title": "竹東之心－中興河道水岸生活空間再造計畫",
+                    "image": "https://i.ibb.co/prwSzmWh/image1636433264260194684.jpg",
+                    "map_url": null, // 沒有特定地圖連結
+                    "description": `「竹東之心－中興河道水岸生活空間再造計畫」是新竹縣政府於2017年起推動的重大空間治理工程，獲得中央前瞻基礎建設「城鎮之心工程計畫（競爭型）」支持，總經費達3.75億元（中央補助3億元，地方配合款0.75億元）。該計畫整合中央內政部、交通部、環保署、客委會等多部會資源，為竹東鎮建立新的人本、親水、宜居發展軸線。
+                    
+中興河道為竹東舊城區內的都市排水系統與水文化載體，歷史上因婦女聚集洗衣而有「洗衫坑」之稱。多年來因護岸水泥化、違佔建築、空間閒置等問題，導致環境品質低落。該再造計畫以「水生態」、「水文化」、「水休憩」為三大段落進行空間規劃，對應三個河道區段，導入多孔隙護岸、生態植栽、水質截流、親水設施與綠色人行網絡，重新賦予水岸空間自然性與使用性。`,
+                    "qa": [
+                        { "q": "竹東之心計畫的目標是什麼？", "a": "目標是為竹東鎮建立新的人本、親水、宜居發展軸線，透過整合多部會資源，活化中興河道水岸空間。" },
+                        { "q": "計畫三大段落是什麼？", "a": "三大段落為「水生態」、「水文化」、「水休憩」，分別對應不同的河道區段，導入生態、文化和休憩功能。" }
+                    ]
+                },
+                "donglin_herb_shop": {
+                    "title": "東林青草行（竹東店）",
+                    "image": "https://i.ibb.co/yJ74gs8/tw-11134210-23020-k3qpz0wobdnv4e.jpg",
+                    "map_url": "https://maps.app.goo.gl/NNKJUdRiVXXzgtVT9",
+                    "description": `青草茶文化在台灣源遠流長，廣泛分布於南北各地，其中客家族群對青草茶的傳承與實踐尤為深厚。
+                    
+青草茶並非客家獨有，但在客庄地區，青草茶被賦予「涼茶」、「清熱解毒」、「調和體質」等多重生活功能。東林青草行承襲傳統手法，以多種常見野生植物如魚腥草、仙草、半枝蓮等為基底，根據時節與體質調配配方，既反映氣候條件，也體現客家族群節儉與敬自然的價值觀。
+竹東位處頭前溪流域，氣候溫暖濕潤，土壤肥沃，適合多種青草類藥用植物自然生長。這種地理優勢促使當地青草行能以地產地用、現採現煎為特色，形成獨特的青草飲食文化系統。
+青草行不僅提供藥草，也提供身體調養建議，成為居民日常生活中不可或缺的健康據點。對外來遊客而言，這裡也是觀察「客家生活如何融合自然智慧」的最佳窗口。`,
+                    "qa": [
+                        { "q": "青草茶在客家文化中扮演什麼角色？", "a": "在客庄地區，青草茶被賦予「涼茶」、「清熱解毒」、「調和體質」等多重生活功能，是客家人日常養生的一部分。" },
+                        { "q": "東林青草行的特色是什麼？", "a": "東林青草行結合了傳統青草茶文化與客家草藥知識，並利用竹東當地優勢，以地產地用、現採現煎為特色，形成獨特的青草飲食文化系統。" }
+                    ]
+                },
+                "datong_lailiao_square": {
+                    "title": "竹東鎮大同來尞廣場",
+                    "image": "https://i.ibb.co/kVvbm7pp/1621776218-3765063913-g-n.webp",
+                    "map_url": "https://maps.app.goo.gl/tWeFFGH2hiMSdf3T6",
+                    "description": `大同來尞廣場為舊台泥竹東廠轉型再利用的成果場域，是竹東鎮近年地方創生與文化轉譯的重要案例之一。該廠區最早可追溯至日治時期，當時名為「南方水泥竹東工場」，由東洋產業、南海興業與台灣電力公司合資設立，主要供應大甲溪水力發電所需的大量水泥資材。
+                    
+當年竹東的水利設施建設，為水泥工場提供了穩定且關鍵的工業用水，也使得竹東成為北台灣水泥製造的重要據點之一。此區的產業設施曾帶動地方就業與聚落發展，也與中興河道的用水系統相互依存。
+隨著工業布局轉移，台泥竹東廠於2010年代逐步停產。2022年，在中央「浪漫台三線」計畫支持下，舊廠區轉型為「大同來尞廣場」，導入社區活動空間、藝術展演與公共綠地機能，延續基地的公共性與歷史意涵。「來尞」在客語中意為「來坐」，象徵地方對旅人與居民的邀請，也體現空間開放共享的精神。`,
+                    "qa": [
+                        { "q": "大同來尞廣場的前身是？", "a": "前身是日治時期的「南方水泥竹東工場」，主要供應水力發電所需的水泥。" },
+                        { "q": "「來尞」是什麼意思？", "a": "「來尞」在客語中是「來坐」的意思，象徵著邀請旅人與居民共同分享空間的精神。" }
+                    ]
+                },
+                "romantic_trail_project": {
+                    "title": "浪漫台三線計畫",
+                    "image": "https://i.ibb.co/pLwV0P0/20200806144806509.jpg", // 找一張浪漫台三線的示意圖
+                    "map_url": null,
+                    "description": `「浪漫台三線」是行政院於2017年啟動，由客家委員會主責的國家級整合計畫，目標是活化貫穿新竹、苗栗、台中、南投至高雄美濃的台三線沿線客庄聚落。這條公路橫跨北中南，全長超過400公里，是台灣客家文化最密集、最具代表性的區域帶。
+                    
+該計畫以「文化導入空間」、「青年返鄉創業」、「產業轉型升級」三大主軸，結合中央與地方資源，推動以下重點：
+* 修復歷史建物與聚落空間，如客家老街、舊宿舍、古道
+* 發展客庄特色觀光、文創產業與節慶活動
+* 建立生活博物館式空間，強化居民與土地的文化連結
+「浪漫」一詞強調的不是觀光包裝，而是強調文化與生活的深度連結，讓人們重新看見在地生活的詩意與日常價值。`,
+                    "qa": [
+                        { "q": "浪漫台三線計畫的主管機關是誰？", "a": "計畫由行政院客家委員會主責推動。" },
+                        { "q": "計畫的三大主軸是什麼？", "a": "三大主軸為「文化導入空間」、「青年返鄉創業」和「產業轉型升級」。" }
+                    ]
+                },
+                "zhudong_opera_park": {
+                    "title": "竹東戲曲公園",
+                    "image": "https://i.ibb.co/dJGqbQT5/b3810-7.jpg",
+                    "map_url": "https://maps.app.goo.gl/7ahzuqUNuuoYckn97",
+                    "description": `竹東戲曲公園，原名竹東育樂公園，是地方居民早期日常休閒與活動的重要場域。隨著文化政策與地方再造計畫的推動，該地於2010年代中期改名為「客家戲曲公園」，並透過設施改造與場域再定位，轉型為推廣客家語言與傳統戲曲的重要舞台。
+                    
+公園中央設有開放式表演舞台，可供山歌競唱、八音表演、歌舞劇、客家戲劇等形式的表演使用。行政院客家委員會於2017年啟動「浪漫台三線」計畫，竹東鎮作為核心推動區之一，獲得資源進行包括戲曲公園在內的文化基礎設施升級。
+公園在每年「天穿日」等客庄重大節慶期間，會舉辦一系列活動，包括客家小吃市集、山歌對唱、傳統技藝展示等，使該地成為文化傳承、社區參與與外來遊客接觸在地文化的交會點。
+透過場域的重新定義，戲曲公園不僅延續了地方記憶，也回應了客庄在當代文化中持續發聲的需求，是生活文化與空間治理結合的代表案例。`,
+                    "qa": [
+                        { "q": "竹東戲曲公園以前叫什麼名字？", "a": "以前叫做竹東育樂公園。" },
+                        { "q": "公園有哪些客家文化活動？", "a": "公園會舉辦客家山歌競唱、八音表演、客家戲劇等活動，特別在「天穿日」期間有更多慶祝活動。" }
+                    ]
+                },
+                "zhudong_market": {
+                    "title": "竹東中央公有零售市場",
+                    "image": "https://i.ibb.co/TxDj0vRq/pic-pimg-tw-weisen5583-1681409002-3778440695-g-n-jpg.jpg",
+                    "map_url": "https://maps.app.goo.gl/HSMC6Uqzvwso15Ji8",
+                    "description": `竹東中央公有零售市場是全台規模最大的客家傳統市場之一，不僅是日常採買的核心場所，也凝聚了竹東居民的生活記憶與客家飲食文化。市場內販售各類生鮮食材、乾貨、醃漬品、客家菜、點心與草藥等，反映出竹東作為農產集散地與客庄中心的雙重身分。
+                    
+作為地方食物系統的關鍵節點，該市場不只是交易空間，更是文化交流與社會互動的場域。長年營運下來，聚集了許多世代經營的小攤、熟識的街坊、與傳承百年的手工美食。例如「福菜」、「梅干」、「粄條」與「鹹湯圓」等，都可在此一站式購得或現場品嘗。`,
+                    "qa": [
+                        { "q": "竹東市場的特色是什麼？", "a": "是台灣最大的客家傳統市場之一，匯集了豐富的客家農產品、傳統米食和各種在地特色商品。" },
+                        { "q": "市場裡能體驗到什麼？", "a": "在市場裡可以感受到濃厚的客家文化氛圍，品嚐道地客家美食，是體驗當地生活的好地方。" }
+                    ]
+                },
+                "rice_culture_story": {
+                    "title": "米食文化小故事 (竹東市場)",
+                    "image": "https://i.ibb.co/q1z6fT1/rice-culture.jpg", // 假想一張米食文化圖片
+                    "map_url": "https://maps.app.goo.gl/HSMC6Uqzvwso15Ji8", // 指向市場地圖
+                    "description": `竹東的米食文化，有一部分是從1969年那間「東寧飲食店」開始說起的。當時正值工業發展高峰，林場、礦場的工人每天凌晨就要出工。黃崇盛與謝宜臻夫妻倆看見這樣的生活節奏，凌晨兩點起床備料，只為讓工人能帶上一份熱騰騰的鐵盒便當，裡面有粄條、菜頭粄，都是用在地米做出來的扎實料理。這間小小的便當店，是竹東第一家自助餐，也是早年米食文化實踐的現場。隨著時代變遷，他們一路轉型，最後創立了客家米食中心，將傳統米食商品化、規模化，發展成米食加工廠與教育體驗場域。這不只是店家的故事，而是整個地方產業從家庭手藝轉向文化資產的縮影。`,
+                    "qa": [
+                        { "q": "東寧飲食店為什麼會那麼早營業？", "a": "因為當時林場、礦場的工人每天凌晨就要出工，夫妻倆為了讓工人有熱騰騰的便當而提早備料。" },
+                        { "q": "東寧飲食店賣什麼特色食物？", "a": "主要提供粄條、菜頭粄等用在地米做成的扎實料理。" }
+                    ]
+                },
+                "zhudong_roundabout": {
+                    "title": "竹東圓環",
+                    "image": "https://i.ibb.co/v4BhGNw3/114.jpg",
+                    "map_url": "https://maps.app.goo.gl/aeQSLnz6sUEt627B9",
+                    "description": `竹東圓環位於市中心，是市區商業、交通與行政的交匯核心。早年這裡是地方農產與林產物流集散點，四通八達的巷道匯聚於此，也因此成為人流、車流最密集的地區。
+                    
+圓環周邊布滿傳統小吃、老字號商店、醫療診所與藥局，是竹東人日常採買與社交的生活場域。你會看到老一輩居民在騎樓下閒坐、熟識店家打招呼、在地人習慣以步行方式往返圓環與市場——這裡不只是交通節點，更是一種生活模式的展現。
+從圓環往東北方走，就是進入中興河道整治段落的起點。這個空間轉換也象徵著從「市場經濟」進入「人本空間」的過渡——從密集建築進入開放綠帶、從汽機車街區進入行人導向步道，正是整體「竹東之心」空間邏輯的展現。`,
+                    "qa": [
+                        { "q": "竹東圓環在竹東有什麼重要性？", "a": "它是市區的商業、交通和行政核心，也是農產與林產的物流集散點，匯聚了人流與車流。" },
+                        { "q": "圓環周邊有什麼特色？", "a": "周圍有傳統小吃、老店、診所，是竹東人日常採買和社交的生活場域，展現獨特的生活模式。" }
+                    ]
+                },
+                "zhudong_forestry_museum": {
+                    "title": "竹東林業展示館",
+                    "image": "https://i.ibb.co/gbk95C2v/143.jpg",
+                    "map_url": "https://maps.app.goo.gl/ywXuirAQyf4EWCp19",
+                    "description": `竹東林業展示館前身為日治時期的「植松材木竹東出張所」，是當時日本殖民政府為管理伐木、分類、儲運而設置的重要林業據點。展示館所在的頭前溪下游區域，曾是北台灣林業經濟命脈所在。
+                    
+過去從五指山、關西、橫山等山區伐下的原木，會以人力搬運至溪邊，再透過索道、簡易台車或獸力車沿溪運至竹東，集中至此倉儲與加工。這裡不僅是木材分類與出貨場所，更是居民就業、聚落形成的起點。
+在展示館內可以看到：
+* 索道模型：模擬山區伐木後木材如何懸掛輸送至集材場
+* 台車鐵軌與木工工具：真實展示早期製材技術與作業流程
+* 木料券制度：員工與居民可領取邊角廢木作為燃料，形成特殊的木材流通機制
+林場也是一個完整的生活系統。居民協助剝樹皮、回收木屑、用廢木換物資，甚至依賴卡車司機順便帶貨、搭便車，建立山下與山上之間緊密的人際互助網絡。
+這段歷史不僅說明竹東曾是林業重鎮，也揭示社區如何與自然共生，並在困難環境中累積生活智慧與文化記憶。這些歷史脈絡也延續至下一站：竹東圓環與其周邊市街。`,
+                    "qa": [
+                        { "q": "展示館以前是什麼？", "a": "前身是日治時期的「植松材木竹東出張所」，是重要的林業據點。" },
+                        { "q": "展示館能看到什麼？", "a": "有索道模型、台車鐵軌、木工工具，並介紹木料券制度和林場與社區的互動。" }
+                    ]
+                },
+                "zhudong_catholic_church": {
+                    "title": "竹東天主堂",
+                    "image": "https://i.ibb.co/3Y8nt5Px/images-1.jpg",
+                    "map_url": "https://maps.app.goo.gl/tZ7JMbTwwNJ4kgTY8",
+                    "description": `竹東天主堂建於1954年，由來自西班牙的神父安輝德（Fr. Angel）主持設計與興建。這是台灣光復後第一座正式落成的天主教大教堂，其地位在新竹地區的宗教與文化史上具有重要指標意義。
+                    
+教堂選址於竹東中心，並以日治時期儲存下未被運出的台灣檜木作為主要建材，這些檜木原本預計供日本政府建築使用，因戰後局勢變動而轉作地方工程之用。
+建築外觀樸實，內部空間開闊，檜木樑柱與窗框仍留有濃郁木香，顯示早年林業與宗教建設之間的密切關聯。據記載，神父與當地林場、居民合作完成建築物料的運送與施工，是地方集體參與的象徵。
+教堂不僅是信仰中心，更是外來宗教如何進入客家聚落、並與地方融合的文化實驗現場。`,
+                    "qa": [
+                        { "q": "竹東天主堂是何時建造的？", "a": "建於1954年，是台灣光復後第一座正式落成的天主教大教堂。" },
+                        { "q": "天主堂的建築材料有何特別？", "a": "主要以日治時期未運出的台灣檜木作為建材，顯示了與當地林業的關聯。" }
+                    ]
+                },
+                "touqian_creek_rainbow_house": {
+                    "title": "頭前溪彩虹屋（中興河道水文化段）",
+                    "image": "https://i.ibb.co/934K6ByP/images.jpg",
+                    "map_url": "https://maps.app.goo.gl/bpqDywqifSo1Nkbm8",
+                    "description": `這一排彩色房屋位於中興河道「水文化段」的起點，靠近學前路橋，原為一處老舊社區住宅區。長年屋況破敗、外牆斑駁，少有人關注。
+                    
+2024年，竹東鎮公所結合「竹東之心」與「浪漫台三線」計畫進行整治，邀請在地藝術團隊與居民共同參與空間再造，將整排立面粉刷為明亮多彩的牆面，轉化為打卡新地標「彩虹屋」。
+這類以色彩為視覺識別的操作，受到基隆正濱漁港與台南藍晒圖等案例啟發，意在賦予衰退空間新的意義與吸引力。彩虹屋的出現，象徵著社區美化、居民參與、地方意識覺醒的三重成果。
+它不僅美觀，更代表一種集體對環境的重新認識與回應。`,
+                    "qa": [
+                        { "q": "彩虹屋的位置和背景？", "a": "位於中興河道「水文化段」起點，原是老舊社區住宅區，屋況破敗。" },
+                        { "q": "彩虹屋的改造目的是什麼？", "a": "結合「竹東之心」與「浪漫台三線」計畫，透過彩繪活化空間，使其成為打卡新地標，並象徵社區美化與居民參與。" }
+                    ]
+                },
+                "xiaojiang_pavilion": {
+                    "title": "曉江亭與洗衫坑（中興河道水休憩段）",
+                    "image": "https://i.ibb.co/HpnBNnfX/image.jpg",
+                    "map_url": "https://maps.app.goo.gl/7uJKHqcAezPiozQd8",
+                    "description": `曉江亭位於中興河道與工業二路交界處，是早期輕便車系統的候車亭，建於1921年，見證了竹東林業與交通的歷史發展。輕便車是當時運輸木材與生活物資的小型軌道列車，連接市街與山區林場，為地方經濟命脈之一。
+                    
+曉江亭本身也兼具社交與休憩功能，居民在此泡茶聊天、商討事情，清晨五點便有工人、母親、小販聚集等車。因亭子朝東、日出時分陽光灑落，因此得名「曉江」——晨光中的亭子。
+緊鄰的洗衫坑，則是早期婦女洗衣之地。由於當時無自來水，每戶人家皆需至溪邊洗衣。婦女們上午完成家務、照顧小孩後，提桶帶皂聚集河邊，邊洗衣邊交流訊息、唱山歌，是女性社群交流的重要空間。
+冬天河水冰冷，婦女的手常被凍紅，但仍笑聲不斷，展現竹東女性勞動與社會支持的實質樣貌。這裡曾是地方資訊傳播、社會互助與文化表現的節點。
+當前「水休憩段」的再造工作，便是以此文化記憶為核心，結合：
+* 生態淨水公園建設
+* 開蓋河段與可近水平台
+* 多孔隙護岸工法重構岸線
+* 女性生活記憶空間再詮釋
+這不僅是水岸景觀改善，更是地方歷史的尊重與當代空間倫理的實踐。`,
+                    "qa": [
+                        { "q": "曉江亭的歷史功能是什麼？", "a": "它是早期輕便車系統的候車亭，也是居民社交和休憩的場所。" },
+                        { "q": "洗衫坑對當地婦女有何意義？", "a": "是早期婦女洗衣、交流訊息、唱山歌的重要社交空間，展現了竹東女性的勞動與社會支持。" }
+                    ]
+                }
+            };
+
+            // 初始化 LIFF
+            function initializeLiff() {
+                // 檢查是否在 LIFF 環境中
+                if (liff.isInClient()) {
+                    liff.init({
+                        liffId: "2007619336-1Yx0ENJp" // *** 請檢查：這裡是否已替換為您的 LIFF ID ***
+                    })
+                    .then(() => {
+                        if (liff.isLoggedIn()) { 
+                            console.log("LIFF initialized successfully and user is logged in.");
+                            loadContent();
+                        } else {
+                            console.log("LIFF initialized, but user is not logged in. Redirecting to login...");
+                            liff.login(); // 如果需要強制登入可以啟用
+                        }
+                    })
+                    .catch((err) => {
+                        console.error("LIFF initialization failed", err);
+                        displayError("LIFF 初始化錯誤：" + err.message);
+                    });
+                } else {
+                    // 不在 LIFF 環境，直接載入內容 (方便開發者直接瀏覽器測試)
+                    console.log("Not in LIFF client, loading content directly for testing.");
+                    loadContent();
+                }
+            }
+
+            // 根據 URL 參數載入內容
+            function loadContent() {
+                const params = new URLSearchParams(window.location.search);
+                const pageKey = params.get('page_key');
+                
+                if (pageKey && liffContentData[pageKey]) {
+                    const content = liffContentData[pageKey];
+                    document.getElementById('content-title').innerText = content.title;
+                    if (content.image) {
+                        document.getElementById('content-image').src = content.image;
+                        document.getElementById('content-image').alt = content.title + "圖片";
+                        document.getElementById('content-image').style.display = 'block'; // 確保顯示
+                    } else {
+                        document.getElementById('content-image').style.display = 'none'; // 沒有圖片則隱藏
+                    }
+                    
+                    // 將 Markdown 格式的描述轉換為 HTML
+                    document.getElementById('content-body').innerHTML = formatMarkdownToHtml(content.description);
+
+                    const googleMapLink = document.getElementById('google-map-link');
+                    if (content.map_url) {
+                        googleMapLink.href = content.map_url;
+                        googleMapLink.classList.remove('hidden');
+                    } else {
+                        googleMapLink.classList.add('hidden'); // 沒有地圖連結則隱藏
+                    }
+
+                    // 載入 Q&A
+                    const qaSection = document.getElementById('qa-section');
+                    const qaContainer = document.getElementById('qa-container');
+                    qaContainer.innerHTML = ''; 
+                    if (content.qa && content.qa.length > 0) {
+                        qaSection.classList.remove('hidden');
+                        content.qa.forEach((qaItem, qaIndex) => {
+                            const qaBlock = document.createElement('div');
+                            qaBlock.className = 'qa-block border rounded-lg p-3';
+                            qaBlock.innerHTML = `
+                                <button class="qa-button w-full text-left p-2 rounded-md font-medium flex justify-between items-center">
+                                    <span>${qaItem.q}</span>
+                                    <span class="transform transition-transform duration-200 arrow-icon">▼</span>
+                                </button>
+                                <div class="qa-answer hidden mt-2 p-3 rounded-md text-gray-700 leading-snug">
+                                    ${qaItem.a}
+                                </div>
+                            `;
+                            const qaButton = qaBlock.querySelector('.qa-button');
+                            const qaAnswer = qaBlock.querySelector('.qa-answer');
+                            const arrowIcon = qaBlock.querySelector('.arrow-icon');
+
+                            qaButton.addEventListener('click', () => {
+                                qaAnswer.classList.toggle('hidden');
+                                arrowIcon.classList.toggle('rotate-180'); 
+                            });
+                            qaContainer.appendChild(qaBlock);
+                        });
+                    } else {
+                        qaSection.classList.add('hidden'); // 沒有 QA 則隱藏
+                    }
+
+                    document.getElementById('loading').classList.add('hidden');
+                    document.getElementById('content').classList.remove('hidden');
+
+                } else {
+                    displayError("找不到指定的內容。請確認 LIFF 參數或該內容是否存在。");
+                }
+            }
+
+            // 簡單的 Markdown 到 HTML 轉換 (支援粗體、列表、連結)
+            function formatMarkdownToHtml(markdown) {
+                let html = markdown;
+                // 處理粗體 **text**
+                html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                // 處理圖片連結 
+                html = html.replace(/<a href="(https?:\/\/(?:i\.ibb\.co|ibb\.co)\/[^\s"]+)"><img src="(.+?)" alt="(.+?)" border="0"><\/a>/g, '<img src="$2" alt="$3" class="inline-block my-2">');
+
+                // 處理列表 * item (需要考慮多行)
+                // 為了正確解析多行列表，需要更複雜的邏輯，這裡簡化為僅替換行首的 *
+                // 更好的做法是使用一個 Markdown 解析庫
+                const lines = html.split('\n');
+                let inList = false;
+                let processedLines = [];
+                lines.forEach(line => {
+                    if (line.trim().startsWith('* ')) {
+                        if (!inList) {
+                            processedLines.push('<ul>');
+                            inList = true;
+                        }
+                        processedLines.push(`<li>${line.trim().substring(2)}</li>`);
+                    } else {
+                        if (inList) {
+                            processedLines.push('</ul>');
+                            inList = false;
+                        }
+                        processedLines.push(line);
+                    }
+                });
+                if (inList) { // 處理列表在最後一行結束的情況
+                    processedLines.push('</ul>');
+                }
+                html = processedLines.join('\n');
+
+
+                // 處理換行符為 <br>
+                html = html.replace(/\n/g, '<br>');
+                return html;
+            }
+
+            // 顯示錯誤訊息
+            function displayError(message) {
+                document.getElementById('loading').innerText = "發生錯誤: " + message;
+                document.getElementById('loading').classList.remove('hidden');
+                document.getElementById('content').classList.add('hidden');
+            }
+
+            // 關閉 LIFF 應用程式
+            document.getElementById('close-liff').addEventListener('click', () => {
+                if (liff.isInClient()) {
+                    liff.closeWindow();
+                } else {
+                    alert("您正在外部瀏覽器中。請直接關閉視窗。");
+                }
+            });
+
+            // LIFF 初始化
+            window.onload = initializeLiff;
+        </script>
+    </body>
+    </html>
+    
